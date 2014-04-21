@@ -181,10 +181,10 @@ public class Server {
 					// result += Bytes.toString(secondKV[0].getValue())+"\n";
 					// result += Bytes.toString(secondKV[1].getValue())+"\n";
 
-					result += Bytes.toString(first.get("count".getBytes()))+"\n";
-					result += Bytes.toString(first.get("sum".getBytes()))+"\n";
-					result += Bytes.toString(second.get("count".getBytes()))+"\n";
-					result += Bytes.toString(second.get("sum".getBytes()))+"\n";
+					result += Bytes.toString(first.get("cf".getBytes()).get("count".getBytes()))+"\n";
+					result += Bytes.toString(first.get("cf".getBytes()).get("sum".getBytes()))+"\n";
+					result += Bytes.toString(second.get("cf".getBytes()).get("count".getBytes()))+"\n";
+					result += Bytes.toString(second.get("cf".getBytes()).get("sum".getBytes()))+"\n";
 					
 					
 				}catch (Exception e){
