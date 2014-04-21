@@ -57,7 +57,7 @@ public class Server {
 		get(new Route("/q2") {
 			@Override
 			public Object handle(Request request, Response response) {				        	
-				String result = teamHeader;			
+				String result = teamHeader+"\n";			
 				String q2key = request.queryParams("userid")+request.queryParams("tweet_time");
 				try{
 					String tweetIds = getFromHBase("tweets_q2", "c", "q", q2key);
@@ -79,7 +79,7 @@ public class Server {
 		get(new Route("/q3") {
 			@Override
 			public Object handle(Request request, Response response) {				        	
-				String result = teamHeader;		
+				String result = teamHeader+"\n";		
 				try{				
 					String userIds = getFromHBase("tweets_q3", "c", "q", request.queryParams("userid"));
 					String[] ids = userIds.split(";");
@@ -100,7 +100,7 @@ public class Server {
 		get(new Route("/q4") {
 			@Override
 			public Object handle(Request request, Response response) {				        	
-				String result = teamHeader;
+				String result = teamHeader+"\n";
 				//Q4 stuff here
 				//request.queryParams("time")				
 				
@@ -113,7 +113,7 @@ public class Server {
 		get(new Route("/q5") {
 			@Override
 			public Object handle(Request request, Response response) {				        	
-				String result = teamHeader;
+				String result = teamHeader+"\n";
 				//Q5 stuff here
 				//request.queryParams("start_time")
 				//request.queryParams("end_time")
@@ -130,7 +130,7 @@ public class Server {
 		get(new Route("/q6") {
 			@Override
 			public Object handle(Request request, Response response) {				        	
-				String result = teamHeader;
+				String result = teamHeader+"\n";
 				//Q6 stuff here
 				//request.queryParams("userid_min")
 				//request.queryParams("userid_max")		
