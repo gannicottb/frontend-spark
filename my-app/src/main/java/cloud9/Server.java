@@ -23,7 +23,7 @@ public class Server {
 	private static Configuration config;
 	private static String[] serverArgs;
 	
-	private static String heartbeat;
+	private static String teamHeader = "cloud9,4897-8874-0242,";
 
 	private static final long MAX_UID = 2427052444L;
 
@@ -42,12 +42,12 @@ public class Server {
 			config.set("hbase.master", args[0]+":9000");
 		}
 
-		heartbeat = "cloud9,4897-8874-0242,"+ new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
+		//heartbeat = "cloud9,4897-8874-0242,"+ new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
 
 	  	get(new Route("/q1") {
 	     @Override
 	     public Object handle(Request request, Response response) {
-	     	// String heartbeat = "cloud9,4897-8874-0242,"+ new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());        		     	
+	     	String heartbeat = heartbeat();
 	     	response.type("text/plain");
 	     	response.header("Content-Length", String.valueOf(heartbeat.length()));
 	      return heartbeat;
@@ -57,7 +57,7 @@ public class Server {
 		get(new Route("/q2") {
 			@Override
 			public Object handle(Request request, Response response) {				        	
-				String result = heartbeat;			
+				String result = teamHeader;			
 				String q2key = request.queryParams("userid")+request.queryParams("tweet_time");
 				try{
 					String tweetIds = getFromHBase("tweets_q2", "c", "q", q2key);
@@ -79,7 +79,7 @@ public class Server {
 		get(new Route("/q3") {
 			@Override
 			public Object handle(Request request, Response response) {				        	
-				String result = heartbeat;		
+				String result = teamHeader;		
 				try{				
 					String userIds = getFromHBase("tweets_q3", "c", "q", request.queryParams("userid"));
 					String[] ids = userIds.split(";");
@@ -100,7 +100,7 @@ public class Server {
 		get(new Route("/q4") {
 			@Override
 			public Object handle(Request request, Response response) {				        	
-				String result = "";
+				String result = teamHeader;
 				//Q4 stuff here
 				//request.queryParams("time")				
 				
@@ -113,7 +113,7 @@ public class Server {
 		get(new Route("/q5") {
 			@Override
 			public Object handle(Request request, Response response) {				        	
-				String result = "";
+				String result = teamHeader;
 				//Q5 stuff here
 				//request.queryParams("start_time")
 				//request.queryParams("end_time")
@@ -130,7 +130,7 @@ public class Server {
 		get(new Route("/q6") {
 			@Override
 			public Object handle(Request request, Response response) {				        	
-				String result = "";
+				String result = teamHeader;
 				//Q6 stuff here
 				//request.queryParams("userid_min")
 				//request.queryParams("userid_max")		
@@ -142,7 +142,7 @@ public class Server {
 										request.queryParams("userid_max").getBytes(), 
 										longToBytes(MAX_UID));
 					//result = String.valueOf(endSum - startSum);
-					result = heartbeat + "\n" + (endSum - startSum);
+					result = teamHeader + "\n" + (endSum - startSum);
 				}catch (IOException e){
 		 			System.err.println(e.getMessage());
 		 		} finally {
@@ -301,6 +301,10 @@ public class Server {
 
 	public static byte[] intToBytes(int x) {
 		return ByteBuffer.allocate(4).putInt(x).array();
+	}
+
+	public static String heartbeat(){
+		return teamHeader+ new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
 	}
 
 }
