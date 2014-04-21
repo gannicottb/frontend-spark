@@ -23,7 +23,7 @@ public class Server {
 	private static Configuration config;
 	private static String[] serverArgs;
 	
-	private static String teamHeader = "cloud9,4897-8874-0242,";
+	private static String teamHeader = "cloud9,4897-8874-0242";
 
 	private static final long MAX_UID = 2427052444L;
 
@@ -209,10 +209,8 @@ public class Server {
 	}
 
 	private static String getFromHBase(String table, String family, String qualifier, String row) throws IOException{
-		String result = "";
-		//config.set(HBASE_CONFIGURATION_ZOOKEEPER_QUORUM, hbaseZookeeperQuorum);
-		//config.set(HBASE_CONFIGURATION_ZOOKEEPER_CLIENTPORT, hbaseZookeeperClientPort);
-		//HConnection connection = HConnectionManager.createConnection(config);	
+		String result = "";		
+		//HConnection connection = HConnectionManager.createConnection(config);			
 		//HTableInterface htable = connection.getTable(table.getBytes());
 		//connection.getTable() won't compile. Not sure why.
 		HTable htable = new HTable(config, table.getBytes());
@@ -304,7 +302,7 @@ public class Server {
 	}
 
 	public static String heartbeat(){
-		return teamHeader+ new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
+		return teamHeader+","+ new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
 	}
 
 }
