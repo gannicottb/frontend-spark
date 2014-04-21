@@ -16,6 +16,7 @@ import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.filter.PageFilter;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.util.Bytes;
 
 
 public class Server {
@@ -137,15 +138,20 @@ public class Server {
 				long secondSum = 0;		
 				KeyValue[] firstKV;
 				KeyValue[] secondKV;
+				NavigableMap<byte[],NavigableMap<byte[],byte[]>> first;
+				NavigableMap<byte[],NavigableMap<byte[],byte[]>> second;
 				try{
+
 					Result firstScan = q6Scan("q6", 
 																request.queryParams("userid_min"), 
 																request.queryParams("userid_max"));		
-					firstKV = firstScan.raw();
+					// firstKV = firstScan.raw();
+					first = firstScan.getNoVersionMap();
 					Result secondScan = q6Scan("q6", 
-																request.queryParams("userid_max"), 
-																String.valueOf(60));					
-					secondKV = secondScan.raw();
+																request.queryParams("userid_max") 
+																);					
+					// secondKV = secondScan.raw();
+					second = secondScan.getNoVersionMap();
 					// if(firstKV.length == 2)
 					// {	
 					// 	firstSum = ByteBuffer.wrap(firstKV[1].getValue()).getLong();
@@ -160,14 +166,25 @@ public class Server {
 					// 	}						
 					// }
 					//result += String.valueOf(secondSum - firstSum);
-					// result += ByteBuffer.wrap(firstKV[0].getValue()).getLong();
-					// result += ByteBuffer.wrap(firstKV[1].getValue()).getLong();
-					// result += ByteBuffer.wrap(secondKV[0].getValue()).getLong();
-					// result += ByteBuffer.wrap(secondKV[1].getValue()).getLong();
-					result += new String(firstKV[0].getValue());
-					result += new String(firstKV[1].getValue());
-					result += new String(secondKV[0].getValue());
-					result += new String(secondKV[1].getValue());
+					// result += ByteBuffer.wrap(firstKV[0].getValue()).getChar();
+					// result += ByteBuffer.wrap(firstKV[1].getValue()).getChar();
+					// result += ByteBuffer.wrap(secondKV[0].getValue()).getChar();
+					// result += ByteBuffer.wrap(secondKV[1].getValue()).getChar();
+					
+					// result += new String(firstKV[0].getValue())+"\n";
+					// result += new String(firstKV[1].getValue())+"\n";
+					// result += new String(secondKV[0].getValue())+"\n";
+					// result += new String(secondKV[1].getValue())+"\n";
+
+					// result += Bytes.toString(firstKV[0].getValue())+"\n";
+					// result += Bytes.toString(firstKV[1].getValue())+"\n";
+					// result += Bytes.toString(secondKV[0].getValue())+"\n";
+					// result += Bytes.toString(secondKV[1].getValue())+"\n";
+
+					result += Bytes.toString(first.get("count".getBytes()))+"\n";
+					result += Bytes.toString(first.get("sum".getBytes()))+"\n";
+					result += Bytes.toString(second.get("count".getBytes()))+"\n";
+					result += Bytes.toString(second.get("sum".getBytes()))+"\n";
 					
 					
 				}catch (Exception e){
@@ -313,9 +330,34 @@ public class Server {
 
 	private static Result q6Scan(String table, String start, String end) throws IOException{
 		Result result;
-		HTableInterface htable = pool.getTable(table.getBytes());	
+		HTableInterface htable = pool.getTable(table);	
 		try {
 			Scan scan = new Scan(start.getBytes(), end.getBytes());			
+			scan.setFilter(new PageFilter(1));
+			ResultScanner scanResult = htable.getScanner(scan);	
+			result = scanResult.next();			
+			
+			// long count = ByteBuffer.wrap(result.getValue(family.getBytes(), "count".getBytes())).getLong();
+			// long sum = ByteBuffer.wrap(result.getValue(family.getBytes(), "sum".getBytes())).getLong();
+
+			// System.out.println("Count:" + count);
+			// System.out.println("Sum:" + sum);
+			// if(Arrays.equals(result.getRow(), start))
+			// 	output = count + sum;
+			// else
+			// 	output = sum;
+
+		} finally {
+			htable.close();			
+		}
+		return result;
+	}
+
+	private static Result q6Scan(String table, String start) throws IOException{
+		Result result;
+		HTableInterface htable = pool.getTable(table);	
+		try {
+			Scan scan = new Scan(start.getBytes());			
 			scan.setFilter(new PageFilter(1));
 			ResultScanner scanResult = htable.getScanner(scan);	
 			result = scanResult.next();			
