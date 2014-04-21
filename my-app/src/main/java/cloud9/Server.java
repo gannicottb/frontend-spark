@@ -22,9 +22,7 @@ public class Server {
 
 	private static Configuration config;
 	private static String[] serverArgs;
-
-	public static final String HBASE_CONFIGURATION_ZOOKEEPER_QUORUM = "hbase.zookeeper.quorum";
-	public static final String HBASE_CONFIGURATION_ZOOKEEPER_CLIENTPORT = "hbase.zookeeper.property.clientPort";
+	
 	private static String heartbeat;
 
 	private static final long MAX_UID = 2427052444L;
@@ -37,8 +35,8 @@ public class Server {
 
 		config = HBaseConfiguration.create();	//Create the HBaseConfiguration
 		if(args.length > 0){
-			config.set(HBASE_CONFIGURATION_ZOOKEEPER_QUORUM, args[0]+":"+args[1]);			
-			config.set(HBASE_CONFIGURATION_ZOOKEEPER_CLIENTPORT, args[1]);
+			config.set("hbase.zookeeper.quorum", args[0]+":2181");			
+			config.set("hbase.zookeeper.property.clientPort", "2181");
 			config.set("hbase.zookeeper.dns.nameserver", args[0]);
 			config.set("hbase.regionserver.port", "60020");
 			config.set("hbase.master", args[0]+":9000");
