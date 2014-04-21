@@ -37,8 +37,11 @@ public class Server {
 
 		config = HBaseConfiguration.create();	//Create the HBaseConfiguration
 		if(args.length > 0){
-			config.set(HBASE_CONFIGURATION_ZOOKEEPER_QUORUM, args[0]);			
+			config.set(HBASE_CONFIGURATION_ZOOKEEPER_QUORUM, args[0]+":"+args[1]);			
 			config.set(HBASE_CONFIGURATION_ZOOKEEPER_CLIENTPORT, args[1]);
+			config.set("hbase.zookeeper.dns.nameserver", args[0]);
+			config.set("hbase.regionserver.port", "60020");
+			config.set("hbase.master", args[0]+":9000");
 		}
 
 		heartbeat = "cloud9,4897-8874-0242,"+ new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
