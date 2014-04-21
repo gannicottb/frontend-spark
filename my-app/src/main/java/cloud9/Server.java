@@ -57,32 +57,42 @@ public class Server {
 			@Override
 			public Object handle(Request request, Response response) {				        	
 				String result = heartbeat;			
-				String q2key = request.queryParams("userid")+request.queryParams("tweet_time")
-				String userIds = getFromHBase("tweets_q2", "c", "q", q2key);
-				String[] ids = tweetIds.split(";");
-				for (String id : ids)
-				{
-					result += id +"\n";
+				String q2key = request.queryParams("userid")+request.queryParams("tweet_time");
+				try{
+					String tweetIds = getFromHBase("tweets_q2", "c", "q", q2key);
+					String[] ids = tweetIds.split(";");
+					for (String id : ids)
+					{
+						result += id +"\n";
+					}
+				} catch (IOException e){
+			 			System.err.println(e.getMessage());
+			 	} finally {
+					response.type("text/plain");
+					response.header("Content-Length", String.valueOf(result.length()));
+					return result;
 				}
-				response.type("text/plain");
-				response.header("Content-Length", String.valueOf(result.length()));
-				return result;
 			}
 		});
 
 		get(new Route("/q3") {
 			@Override
 			public Object handle(Request request, Response response) {				        	
-				String result = heartbeat;						
-				String userIds = getFromHBase("tweets_q3", "c", "q", request.queryParams("userid"));
-				String[] ids = tweetIds.split(";");
-				for (String id : ids)
-				{
-					result += id +"\n";
+				String result = heartbeat;		
+				try{				
+					String userIds = getFromHBase("tweets_q3", "c", "q", request.queryParams("userid"));
+					String[] ids = userIds.split(";");
+					for (String id : ids)
+					{
+						result += id +"\n";
+					}
+				} catch (IOException e){
+			 			System.err.println(e.getMessage());
+			 	} finally {
+					response.type("text/plain");
+					response.header("Content-Length", String.valueOf(result.length()));
+					return result;
 				}
-				response.type("text/plain");
-				response.header("Content-Length", String.valueOf(result.length()));
-				return result;
 			}
 		});
 
