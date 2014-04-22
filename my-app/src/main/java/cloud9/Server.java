@@ -52,7 +52,7 @@ public class Server {
 	  	get(new Route("/q1") {
 	     @Override
 	     public Object handle(Request request, Response response) {
-	     	String heartbeat = heartbeat();
+	     	String heartbeat = teamHeader+","+ new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
 	     	response.type("text/plain");
 	     	response.header("Content-Length", String.valueOf(heartbeat.length()));
 	      return heartbeat;
@@ -180,16 +180,16 @@ public class Server {
 				String result = teamHeader+"\n";
 				String userMin = request.queryParams("userid_min");
 				String userMax = request.queryParams("userid_max");
-				byte[] columnFamily = "cf".getBytes();
-				byte[] count = "count".getBytes();
-				byte[] sum = "sum".getBytes();
+				byte[] columnFamily = "c".getBytes();
+				byte[] count = "c1".getBytes();
+				byte[] sum = "c2".getBytes();
 				int firstSum = 0;
 				int secondSum = 0;					
 				NavigableMap<byte[],NavigableMap<byte[],byte[]>> first;
 				NavigableMap<byte[],NavigableMap<byte[],byte[]>> second;
 				try{
-					Result firstScan = scanOne("q6", userMin, userMax);					
-					Result secondScan = scanOne("q6",userMax);
+					Result firstScan = scanOne("tweets_q6", userMin, userMax);					
+					Result secondScan = scanOne("tweets_q6",userMax);
 					first = firstScan.getNoVersionMap();								
 					second = secondScan.getNoVersionMap();
 
@@ -235,6 +235,7 @@ public class Server {
 										request.params(":start"),
 										request.params(":stop"),
 										false);
+			 		
 			 	} catch (IOException e){
 			 			System.err.println(e.getMessage());
 			 		} finally {
@@ -334,8 +335,7 @@ public class Server {
 			//Set some options
 			if(limit){				
 				scan.setFilter(new PageFilter(1));
-			}			
-			//scan.setReversed(reversed);
+			}					
 
 			ResultScanner scanResult = htable.getScanner(scan);				
 			Result result = scanResult.next();
@@ -390,63 +390,7 @@ public class Server {
 			htable.close();
 			return scanResult;
 		}
-	}		
-
-
-
-	private static Result q6Scan(String table, String start, String end) throws IOException{
-		Result result;
-		HTableInterface htable = pool.getTable(table);	
-		try {
-			Scan scan = new Scan(start.getBytes(), end.getBytes());			
-			scan.setFilter(new PageFilter(1));
-			ResultScanner scanResult = htable.getScanner(scan);	
-			result = scanResult.next();			
-			
-			// long count = ByteBuffer.wrap(result.getValue(family.getBytes(), "count".getBytes())).getLong();
-			// long sum = ByteBuffer.wrap(result.getValue(family.getBytes(), "sum".getBytes())).getLong();
-
-			// System.out.println("Count:" + count);
-			// System.out.println("Sum:" + sum);
-			// if(Arrays.equals(result.getRow(), start))
-			// 	output = count + sum;
-			// else
-			// 	output = sum;
-
-		} finally {
-			htable.close();			
-		}
-		return result;
-	}
-
-	private static Result q6Scan(String table, String start) throws IOException{
-		Result result;
-		HTableInterface htable = pool.getTable(table);	
-		try {
-			Scan scan = new Scan(start.getBytes());			
-			scan.setFilter(new PageFilter(1));
-			ResultScanner scanResult = htable.getScanner(scan);	
-			result = scanResult.next();			
-			
-			// long count = ByteBuffer.wrap(result.getValue(family.getBytes(), "count".getBytes())).getLong();
-			// long sum = ByteBuffer.wrap(result.getValue(family.getBytes(), "sum".getBytes())).getLong();
-
-			// System.out.println("Count:" + count);
-			// System.out.println("Sum:" + sum);
-			// if(Arrays.equals(result.getRow(), start))
-			// 	output = count + sum;
-			// else
-			// 	output = sum;
-
-		} finally {
-			htable.close();			
-		}
-		return result;
-	}
-
-	public static String heartbeat(){
-		return teamHeader+","+ new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
-	}
+	}	
 
 	public static boolean isTimeStampValid(String inputString)
 	{ 		
