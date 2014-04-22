@@ -9,9 +9,11 @@ import static spark.Spark.*;
 import spark.*;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.io.IOException;
+import java.io.*;
+import java.text.ParseException;
 import java.nio.ByteBuffer;
 import java.lang.StringBuilder;
+import java.text.SimpleDateFormat;
 
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.*;
@@ -141,26 +143,27 @@ public class Server {
 				String value;
 				TreeSet<Long> sorted = new TreeSet();
 				try{
-					ResultScanner query = scanFromHBase("tweets_q5", place+start_time, place+end_time);
-					current = query.next();
-					while(current != null){ //For each row...
-						//Get the value (a semicolon delimited list of ids)
-						value = Bytes.toString(current.getNoVersionMap().get("c".getBytes()).get("q".getBytes()));
-						String[] splitted = value.split(";"); //Split them on ;
-						for(String s : splitted){
-							sorted.add(Long.parseLong(s, 10));	//Add as longs to the TreeSet
-						}		
-						current = query.next();				
+					if(isTimeStampValid(start_time) && isTimeStampValid(end_time)){
+						ResultScanner query = scanFromHBase("tweets_q5", place+start_time, place+end_time);
+						current = query.next();
+						while(current != null){ //For each row...
+							//Get the value (a semicolon delimited list of ids)
+							value = Bytes.toString(current.getNoVersionMap().get("c".getBytes()).get("q".getBytes()));
+							String[] splitted = value.split(";"); //Split them on ;
+							for(String s : splitted){
+								sorted.add(Long.parseLong(s, 10));	//Add as longs to the TreeSet
+							}		
+							current = query.next();				
+						}
+						//Use StringBuilder to build the concatenated response
+						StringBuilder sb = new StringBuilder(sorted.size()*18);
+						sb.append(result);
+						for(Long id : sorted){
+							sb.append(id);
+							sb.append("\n");
+						}
+						result = sb.toString();
 					}
-					//Use StringBuilder to build the concatenated response
-					StringBuilder sb = new StringBuilder(sorted.size()*18);
-					sb.append(result);
-					for(Long id : sorted){
-						sb.append(id);
-						sb.append("\n");
-					}
-					result = sb.toString();
-
 				}catch (Exception e){
 			 			e.printStackTrace();
 			 	} finally {
@@ -448,6 +451,19 @@ public class Server {
 
 	public static String heartbeat(){
 		return teamHeader+","+ new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
+	}
+
+	public static boolean isTimeStampValid(String inputString)
+	{ 		
+    SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    try{
+       format.parse(inputString);
+       return true;
+    }
+    catch(ParseException e)
+    {
+        return false;
+    }
 	}
 
 }
