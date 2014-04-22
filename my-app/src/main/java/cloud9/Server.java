@@ -46,7 +46,7 @@ public class Server {
 			config.set("hbase.regionserver.port", "60020");
 			config.set("hbase.master", args[0]+":9000");
 		}
-			pool = new HTablePool(config, 25);
+			pool = new HTablePool(config, 50);
 
 
 	  	get(new Route("/q1") {
