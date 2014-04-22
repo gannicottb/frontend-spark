@@ -144,7 +144,7 @@ public class Server {
 				TreeSet<Long> sorted = new TreeSet();
 				try{
 					if(isTimeStampValid(start_time) && isTimeStampValid(end_time)){
-						ResultScanner query = scanFromHBase("tweets_q5", place+start_time, place+end_time);
+						ResultScanner query = scan("tweets_q5", place+start_time, place+end_time);
 						current = query.next();
 						while(current != null){ //For each row...
 							//Get the value (a semicolon delimited list of ids)
@@ -177,59 +177,42 @@ public class Server {
 		get(new Route("/q6") {
 			@Override
 			public Object handle(Request request, Response response) {				        	
-				String result = teamHeader+"\n";				
-				long firstSum = 0;
-				long secondSum = 0;		
-				KeyValue[] firstKV;
-				KeyValue[] secondKV;
+				String result = teamHeader+"\n";
+				String userMin = request.queryParams("userid_min");
+				String userMax = request.queryParams("userid_max");
+				byte[] columnFamily = "cf".getBytes();
+				byte[] count = "count".getBytes();
+				byte[] sum = "sum".getBytes();
+				int firstSum = 0;
+				int secondSum = 0;					
 				NavigableMap<byte[],NavigableMap<byte[],byte[]>> first;
 				NavigableMap<byte[],NavigableMap<byte[],byte[]>> second;
 				try{
-
-					Result firstScan = q6Scan("q6", 
-																request.queryParams("userid_min"), 
-																request.queryParams("userid_max"));		
-					// firstKV = firstScan.raw();
-					first = firstScan.getNoVersionMap();
-					Result secondScan = q6Scan("q6", 
-																request.queryParams("userid_max") 
-																);					
-					// secondKV = secondScan.raw();
+					Result firstScan = scanOne("q6", userMin, userMax);					
+					Result secondScan = scanOne("q6",userMax);
+					first = firstScan.getNoVersionMap();								
 					second = secondScan.getNoVersionMap();
-					// if(firstKV.length == 2)
-					// {	
-					// 	firstSum = ByteBuffer.wrap(firstKV[1].getValue()).getLong();
-					// }
-					// if(secondKV.length == 2)
-					// {
-					// 	if (new String(secondScan.getRow()).equals(request.queryParams("userid_max"))){
-					// 		secondSum = ByteBuffer.wrap(secondKV[0].getValue()).getLong() + 
-					// 								ByteBuffer.wrap(secondKV[1].getValue()).getLong();
-					// 	}else{
-					// 		secondSum = ByteBuffer.wrap(secondKV[1].getValue()).getLong();
-					// 	}						
-					// }
-					//result += String.valueOf(secondSum - firstSum);
-					// result += ByteBuffer.wrap(firstKV[0].getValue()).getChar();
-					// result += ByteBuffer.wrap(firstKV[1].getValue()).getChar();
-					// result += ByteBuffer.wrap(secondKV[0].getValue()).getChar();
-					// result += ByteBuffer.wrap(secondKV[1].getValue()).getChar();
-					
-					// result += new String(firstKV[0].getValue())+"\n";
-					// result += new String(firstKV[1].getValue())+"\n";
-					// result += new String(secondKV[0].getValue())+"\n";
-					// result += new String(secondKV[1].getValue())+"\n";
 
-					// result += Bytes.toString(firstKV[0].getValue())+"\n";
-					// result += Bytes.toString(firstKV[1].getValue())+"\n";
-					// result += Bytes.toString(secondKV[0].getValue())+"\n";
-					// result += Bytes.toString(secondKV[1].getValue())+"\n";
+					if(!first.isEmpty())
+					{	
+						firstSum = Bytes.toInt(first.get(columnFamily).get(sum));
+					}
+					if(!second.isEmpty())
+					{
+						if (new String(secondScan.getRow()).equals(userMax)) {
+					 		secondSum = Bytes.toInt(second.get(columnFamily).get(sum)) + 
+					 								Bytes.toInt(second.get(columnFamily).get(count));
+						}else{
+							secondSum = Bytes.toInt(second.get(columnFamily).get(sum));
+						}						
+					}
+					result += String.valueOf(secondSum - firstSum);				
 
-					result += Bytes.toString(first.get("cf".getBytes()).get("count".getBytes()))+"\n";
-					result += Bytes.toString(first.get("cf".getBytes()).get("sum".getBytes()))+"\n";
-					result += Bytes.toString(second.get("cf".getBytes()).get("count".getBytes()))+"\n";
-					result += Bytes.toString(second.get("cf".getBytes()).get("sum".getBytes()))+"\n";
-					
+					/*This code works, just so ya know*/
+					// result += Bytes.toString(first.get("cf".getBytes()).get("count".getBytes()))+"\n";
+					// result += Bytes.toString(first.get("cf".getBytes()).get("sum".getBytes()))+"\n";
+					// result += Bytes.toString(second.get("cf".getBytes()).get("count".getBytes()))+"\n";
+					// result += Bytes.toString(second.get("cf".getBytes()).get("sum".getBytes()))+"\n";					
 					
 				}catch (Exception e){
 		 			e.printStackTrace();
@@ -371,15 +354,35 @@ public class Server {
 			return output;
 		}		
 	}
+	/* Interfaces to scanFromHBase */
+	private static Result scanOne(String table, String start) throws IOException{
+		return scanFromHBase(table, start, null, true).next();
+	}
 
-	private static ResultScanner scanFromHBase(String table, String start, String stop) throws IOException{		
+	private static Result scanOne(String table, String start, String stop) throws IOException{
+		return scanFromHBase(table, start, stop, true).next();
+	}
+
+	private static ResultScanner scan(String table, String start, String stop) throws IOException{
+		return scanFromHBase(table, start, stop, false);
+	}
+	/* Base Function */
+	private static ResultScanner scanFromHBase(String table, String start, String stop, boolean limit) throws IOException{		
 		
 		HTableInterface htable = pool.getTable(table);	
 		ResultScanner scanResult = null;
+		Scan scan = null;
 		try {				
-			byte[] stopAsBytes = stop.getBytes();
-			//byte[] stopPlusZero = Arrays.copyOf(stopAsBytes, stopAsBytes.length+1);
-			Scan scan = new Scan(start.getBytes(), Arrays.copyOf(stopAsBytes, stopAsBytes.length+1));		
+			if(stop != null){
+				byte[] stopAsBytes = stop.getBytes();			
+				scan = new Scan(start.getBytes(), Arrays.copyOf(stopAsBytes, stopAsBytes.length+1));	
+			}	else {
+				scan = new Scan(start.getBytes());
+			}
+
+			if(limit){
+				scan.setFilter(new PageFilter(1));
+			}
 			scanResult = htable.getScanner(scan);	
 		} catch (Exception e){
 			e.printStackTrace();			
@@ -388,6 +391,8 @@ public class Server {
 			return scanResult;
 		}
 	}		
+
+
 
 	private static Result q6Scan(String table, String start, String end) throws IOException{
 		Result result;
@@ -437,16 +442,6 @@ public class Server {
 			htable.close();			
 		}
 		return result;
-	}
-
-	public static byte[] longToBytes(long x) {
-    ByteBuffer buffer = ByteBuffer.allocate(8);
-    buffer.putLong(x);
-    return buffer.array();
-	}
-
-	public static byte[] intToBytes(int x) {
-		return ByteBuffer.allocate(4).putInt(x).array();
 	}
 
 	public static String heartbeat(){
