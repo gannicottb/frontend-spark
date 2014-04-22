@@ -141,7 +141,7 @@ public class Server {
 				String value;
 				TreeSet<Long> sorted = new TreeSet();
 				try{
-					ResultScanner query = scanFromHBase("q5", place+start_time, place+end_time);
+					ResultScanner query = scanFromHBase("tweets_q5", place+start_time, place+end_time);
 					current = query.next();
 					while(current != null){ //For each row...
 						//Get the value (a semicolon delimited list of ids)
