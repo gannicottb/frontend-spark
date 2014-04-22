@@ -11,6 +11,7 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.lang.StringBuilder;
 
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.*;
@@ -34,7 +35,6 @@ public class Server {
 		serverArgs = args.clone();	//Create a copy of the command line arguments that my handlers can access
 
 		setPort(80);	//Listen on port 80 (which requires sudo)
-
 
 		config = HBaseConfiguration.create();	//Create the HBaseConfiguration
 		if(args.length > 0){
@@ -65,12 +65,15 @@ public class Server {
 				try{
 					String tweetIds = getFromHBase("tweets_q2", "c", "q", q2key);
 					String[] ids = tweetIds.split(";");
-					for (String id : ids)
-					{
-						result += id +"\n";
+					StringBuilder sb = new StringBuilder(ids.length*18);
+					sb.append(result);					
+					for (String id : ids){
+						sb.append(id);
+						sb.append("\n");
 					}
-				} catch (IOException e){
-			 			System.err.println(e.getMessage());
+					result = sb.toString();
+				} catch (Exception e){
+			 			e.printStackTrace();
 			 	} finally {
 					response.type("text/plain");
 					response.header("Content-Length", String.valueOf(result.length()));
@@ -86,13 +89,16 @@ public class Server {
 				try{				
 					String userIds = getFromHBase("tweets_q3", "c", "q", request.queryParams("userid"));
 					String[] ids = userIds.split(";");
-					for (String id : ids)
-					{
-						result += id +"\n";
+					StringBuilder sb = new StringBuilder(ids.length*18);
+					sb.append(result);					
+					for (String id : ids){
+						sb.append(id);
+						sb.append("\n");
 					}
-				} catch (IOException e){
-			 			System.err.println(e.getMessage());
-			 	} finally {
+					result = sb.toString();
+					} catch (Exception e){
+			 			e.printStackTrace();
+		 		} finally {
 					response.type("text/plain");
 					response.header("Content-Length", String.valueOf(result.length()));
 					return result;
@@ -104,29 +110,64 @@ public class Server {
 			@Override
 			public Object handle(Request request, Response response) {				        	
 				String result = teamHeader+"\n";
-				//Q4 stuff here
-				//request.queryParams("time")				
-				
-				response.type("text/plain");
-				response.header("Content-Length", String.valueOf(result.length()));
-				return result;
+				try{				
+					String query = getFromHBase("tweets_q4", "c", "q", request.queryParams("time"));					
+					String[] tweetAndTexts = query.split("\t");
+					StringBuilder sb = new StringBuilder(tweetAndTexts.length*150);
+					sb.append(result);					
+					for (String tweetAndText : tweetAndTexts){
+						sb.append(tweetAndText);
+						sb.append("\n");
+					}
+					result = sb.toString();					
+					} catch (Exception e){
+			 			e.printStackTrace();
+			 	} finally {
+					response.type("text/plain");
+					response.header("Content-Length", String.valueOf(result.length()));
+					return result;
+				}												
 			}
 		});
 
 		get(new Route("/q5") {
 			@Override
 			public Object handle(Request request, Response response) {				        	
-				String result = teamHeader+"\n";
-				//Q5 stuff here
-				//request.queryParams("start_time")
-				//request.queryParams("end_time")
-				//request.queryParams("place")
-				result += request.queryParams("start_time") + "\n"+
-									request.queryParams("end_time") + "\n" +
-									request.queryParams("place");
-				response.type("text/plain");
-				response.header("Content-Length", String.valueOf(result.length()));
-				return result;
+				String result = teamHeader+"\n";				
+				String place = request.queryParams("place");
+				String start_time = request.queryParams("start_time");
+				String end_time = request.queryParams("end_time");			
+				Result current;						
+				String value;
+				TreeSet<Long> sorted = new TreeSet();
+				try{
+					ResultScanner query = scanFromHBase("q5", place+start_time, place+end_time);
+					current = query.next();
+					while(current != null){ //For each row...
+						//Get the value (a semicolon delimited list of ids)
+						value = Bytes.toString(current.getNoVersionMap().get("c".getBytes()).get("q".getBytes()));
+						String[] splitted = value.split(";"); //Split them on ;
+						for(String s : splitted){
+							sorted.add(Long.parseLong(s, 10));	//Add as longs to the TreeSet
+						}		
+						current = query.next();				
+					}
+					//Use StringBuilder to build the concatenated response
+					StringBuilder sb = new StringBuilder(sorted.size()*18);
+					sb.append(result);
+					for(Long id : sorted){
+						sb.append(id);
+						sb.append("\n");
+					}
+					result = sb.toString();
+
+				}catch (Exception e){
+			 			e.printStackTrace();
+			 	} finally {
+					response.type("text/plain");
+					response.header("Content-Length", String.valueOf(result.length()));
+					return result;
+				}
 			}
 		});
 
@@ -202,12 +243,12 @@ public class Server {
 		 public Object handle(Request request, Response response) { 
 		 		String result = "";
 		 		try{
-			 		result = scanFromHBase(request.params(":table"),
+			 		result = scanFromHBaseDebug(request.params(":table"),
 										request.params(":family"),
 										request.params(":qualifier"),
 										request.params(":start"),
 										request.params(":stop"),
-										true);
+										false);
 			 	} catch (IOException e){
 			 			System.err.println(e.getMessage());
 			 		} finally {
@@ -295,15 +336,15 @@ public class Server {
 		return result;
 	}
 
-	private static String scanFromHBase(String table, String family, String qualifier, String start, String stop, boolean limit) throws IOException{		
+	private static String scanFromHBaseDebug(String table, String family, String qualifier, String start, String stop, boolean limit) throws IOException{		
 		String output = "";
 		HTableInterface htable = pool.getTable(table);	
-		try {		
-			//byte[] startRow = ByteBuffer.allocate(4).putInt(Integer.parseInt(start)).array();
-			//byte[] startRow = intToBytes(Integer.parseInt(start));
-			//byte[] stopRow = intToBytes(Integer.parseInt(stop));
+		try {					
 			//Scan scan = new Scan(startRow, stopRow);
-			Scan scan = new Scan(start.getBytes(), stop.getBytes());
+			byte[] stopAsBytes = stop.getBytes();
+			byte[] stopPlusZero = Arrays.copyOf(stopAsBytes, stopAsBytes.length+1);
+			// Scan scan = new Scan(start.getBytes(), stop.getBytes());
+			Scan scan = new Scan(start.getBytes(), stopPlusZero);
 			//Set some options
 			if(limit){				
 				scan.setFilter(new PageFilter(1));
@@ -327,6 +368,23 @@ public class Server {
 			return output;
 		}		
 	}
+
+	private static ResultScanner scanFromHBase(String table, String start, String stop) throws IOException{		
+		
+		HTableInterface htable = pool.getTable(table);	
+		ResultScanner scanResult = null;
+		try {				
+			byte[] stopAsBytes = stop.getBytes();
+			//byte[] stopPlusZero = Arrays.copyOf(stopAsBytes, stopAsBytes.length+1);
+			Scan scan = new Scan(start.getBytes(), Arrays.copyOf(stopAsBytes, stopAsBytes.length+1));		
+			scanResult = htable.getScanner(scan);	
+		} catch (Exception e){
+			e.printStackTrace();			
+		}	finally {
+			htable.close();
+			return scanResult;
+		}
+	}		
 
 	private static Result q6Scan(String table, String start, String end) throws IOException{
 		Result result;
