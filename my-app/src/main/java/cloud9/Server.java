@@ -94,14 +94,18 @@ public class Server {
 			public Object handle(Request request, Response response) {				        	
 				String result = teamHeader+"\n";		
 				try{				
-					String userIds = getFromHBase("tweets_q3", "c", "q", request.queryParams("userid"));
-					String[] ids = userIds.split(";");
-					StringBuilder sb = new StringBuilder(ids.length*18);
-					sb.append(result);					
-					for (String id : ids){
-						sb.append(id);
+					Result query = getFromHBase("tweets_q3", request.queryParams("userid"));
+					byte[] userIds = query.getValue(column, qualifier);
+					
+					StringBuilder sb = new StringBuilder(userIds.length);
+					sb.append(result);
+
+					int offset = 0;							
+					while(offset < userIds.length){
+						sb.append(Bytes.toLong(userIds, offset));
 						sb.append("\n");
-					}
+						offset += 8;
+					}		
 					result = sb.toString();
 					} catch (Exception e){
 			 			e.printStackTrace();
@@ -119,7 +123,7 @@ public class Server {
 				String result = teamHeader+"\n";
 				try{				
 					String query = getFromHBase("tweets_q4", "c", "q", request.queryParams("time"));					
-					String[] tweetAndTexts = query.split("\t");
+					String[] tweetAndTexts = query.split("&;");
 					StringBuilder sb = new StringBuilder(tweetAndTexts.length*150);
 					sb.append(result);					
 					for (String tweetAndText : tweetAndTexts){
@@ -212,13 +216,7 @@ public class Server {
 							secondSum = Bytes.toInt(second.get(column).get(sum));
 						}						
 					}
-					result += String.valueOf(secondSum - firstSum);				
-
-					/*This code works, just so ya know*/
-					// result += Bytes.toString(first.get("cf".getBytes()).get("count".getBytes()))+"\n";
-					// result += Bytes.toString(first.get("cf".getBytes()).get("sum".getBytes()))+"\n";
-					// result += Bytes.toString(second.get("cf".getBytes()).get("count".getBytes()))+"\n";
-					// result += Bytes.toString(second.get("cf".getBytes()).get("sum".getBytes()))+"\n";					
+					result += String.valueOf(secondSum - firstSum);											
 					
 				}catch (Exception e){
 		 			e.printStackTrace();
@@ -312,6 +310,19 @@ public class Server {
 			htable.close();			
 		}
 		return result;
+	}
+
+	private static Result getFromHBase(String table, String row) throws IOException{
+		Result r = null;		
+		HTableInterface htable = pool.getTable(table);		
+		try {
+		// Use the table as needed, for a single operation and a single thread
+			r = htable.get(new Get(row.getBytes()));			
+
+		} finally {
+			htable.close();
+			return r;
+		}	
 	}
 
 	private static String getFromHBase(String table, String family, String qualifier, String row) throws IOException{
