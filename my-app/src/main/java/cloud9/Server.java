@@ -188,32 +188,38 @@ public class Server {
 			@Override
 			public Object handle(Request request, Response response) {				        	
 				String result = teamHeader+"\n";
-				String userMin = request.queryParams("userid_min");
-				String userMax = request.queryParams("userid_max");
-				
-				byte[] count = "c1".getBytes();
-				byte[] sum = "c2".getBytes();
-				int firstSum = 0;
-				int secondSum = 0;					
-				NavigableMap<byte[],NavigableMap<byte[],byte[]>> first;
-				NavigableMap<byte[],NavigableMap<byte[],byte[]>> second;
-				try{
-					Result firstScan = scanOne("tweets_q6", userMin, userMax);					
-					Result secondScan = scanOne("tweets_q6",userMax);
-					first = firstScan.getNoVersionMap();								
-					second = secondScan.getNoVersionMap();
 
-					if(!first.isEmpty())
+				byte[] userMinKey = Bytes.toBytes(Long.parseLong(request.queryParams("userid_min"), 10));				
+				byte[] userMaxKey = Bytes.toBytes(Long.parseLong(request.queryParams("userid_max"), 10));
+				byte[] userMinValue;
+				byte[] userMaxValue;
+
+				int count = 0;
+				int sum = 4;
+				int firstSum = 0;
+				int secondSum = 0;			
+
+				try{
+					Result firstScan = scanOne("tweets_q6", userMinKey, userMaxKey);							
+					Result secondScan = scanOne("tweets_q6",userMaxKey);
+					
+					userMinValue = firstScan.getNoVersionMap().get(column).get(qualifier);
+					userMaxValue = secondScan.getNoVersionMap().get(column).get(qualifier);
+
+					if(userMinValue.length != 0)
 					{	
-						firstSum = Bytes.toInt(first.get(column).get(sum));
+						//Read an integer from the byte[] starting at the 'sum' offset (4)
+						firstSum = Bytes.toInt(userMinValue, sum);
 					}
-					if(!second.isEmpty())
-					{
-						if (new String(secondScan.getRow()).equals(userMax)) {
-					 		secondSum = Bytes.toInt(second.get(column).get(sum)) + 
-					 								Bytes.toInt(second.get(column).get(count));
+					if(userMaxValue.length != 0)
+					{						
+						if (Arrays.equals(secondScan.getRow(), userMaxKey)) {
+							//If the userMax exists, then the value is its sum + count							
+					 		secondSum = Bytes.toInt(userMaxValue, sum) + 
+					 								Bytes.toInt(userMaxValue, count);
 						}else{
-							secondSum = Bytes.toInt(second.get(column).get(sum));
+							//If the userMax didn't exist, then the value is the next row's sum
+							secondSum = Bytes.toInt(userMaxValue, sum);
 						}						
 					}
 					result += String.valueOf(secondSum - firstSum);											
@@ -372,29 +378,28 @@ public class Server {
 		}		
 	}
 	/* Interfaces to scanFromHBase */
-	private static Result scanOne(String table, String start) throws IOException{
-		return scanFromHBase(table, start, null, true).next();
+	private static Result scanOne(String table, byte[] start) throws IOException{
+		return scanFromHBase(table.getBytes(), start, null, true).next();
 	}
 
-	private static Result scanOne(String table, String start, String stop) throws IOException{
-		return scanFromHBase(table, start, stop, true).next();
+	private static Result scanOne(String table, byte[] start, byte[] stop) throws IOException{
+		return scanFromHBase(table.getBytes(), start, stop, true).next();
 	}
 
 	private static ResultScanner scan(String table, String start, String stop) throws IOException{
-		return scanFromHBase(table, start, stop, false);
+		return scanFromHBase(table.getBytes(), start.getBytes(), stop.getBytes(), false);
 	}
 	/* Base Function */
-	private static ResultScanner scanFromHBase(String table, String start, String stop, boolean limit) throws IOException{		
+	private static ResultScanner scanFromHBase(byte[] table, byte[] start, byte[] stop, boolean limit) throws IOException{		
 		
 		HTableInterface htable = pool.getTable(table);	
 		ResultScanner scanResult = null;
 		Scan scan = null;
 		try {				
-			if(stop != null){
-				byte[] stopAsBytes = stop.getBytes();			
-				scan = new Scan(start.getBytes(), Arrays.copyOf(stopAsBytes, stopAsBytes.length+1));	
+			if(stop != null){				
+				scan = new Scan(start, Arrays.copyOf(stop, stop.length+1));	
 			}	else {
-				scan = new Scan(start.getBytes());
+				scan = new Scan(start);
 			}
 
 			if(limit){
