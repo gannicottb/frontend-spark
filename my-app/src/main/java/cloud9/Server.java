@@ -214,7 +214,7 @@ public class Server {
 				int secondSum = 0;			
 
 				try{
-					Result firstScan = scanOne("tweets_q6", userMinKey, userMaxKey);							
+					Result firstScan = scanOne("tweets_q6", userMinKey);							
 					Result secondScan = scanOne("tweets_q6",userMaxKey);
 					
 					userMinValue = firstScan.getNoVersionMap().get(column).get(qualifier);
