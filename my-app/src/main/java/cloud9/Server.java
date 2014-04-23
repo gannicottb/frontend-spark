@@ -96,7 +96,7 @@ public class Server {
 					Result query = getFromHBase("tweets_q3", request.queryParams("userid"));
 					byte[] userIds = query.getValue(column, qualifier);
 					
-					StringBuilder sb = new StringBuilder(userIds.length);
+					StringBuilder sb = new StringBuilder(userIds.length*20 + 20);
 					sb.append(result);
 
 					int offset = 0;							
@@ -124,9 +124,9 @@ public class Server {
 					/*
 					* NOTE: Change qualifier "c" if we change qualifier of tweets_q4 in HBase
 					*/
-					String query = new String(getFromHBase("tweets_q4", request.queryParams("time")).getValue(column, "c".getBytes()));					
+					String query = Bytes.toString(getFromHBase("tweets_q4", request.queryParams("time")).getValue(column, "q".getBytes()));	
 					String[] tweetAndTexts = query.split("&;");
-					StringBuilder sb = new StringBuilder(tweetAndTexts.length*150);
+					StringBuilder sb = new StringBuilder(tweetAndTexts.length*200);
 					sb.append(result);					
 					for (String tweetAndText : tweetAndTexts){
 						//Idea: sb.append (tweetAndText.getBytes("UTF-8"));
@@ -299,6 +299,7 @@ public class Server {
 			if(limit){
 				scan.setFilter(new PageFilter(1));	
 				scan.setBatch(1);							
+				scan.setCaching(1);
 			}
 			scanResult = htable.getScanner(scan);	
 		} catch (Exception e){
