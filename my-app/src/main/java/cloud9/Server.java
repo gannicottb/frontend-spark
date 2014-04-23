@@ -37,8 +37,6 @@ public class Server {
 
 	public static void main(String[] args) {
 
-		serverArgs = args.clone();	//Create a copy of the command line arguments that my handlers can access
-
 		setPort(80);	//Listen on port 80 (which requires sudo)
 
 		column = "c".getBytes();
