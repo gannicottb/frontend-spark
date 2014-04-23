@@ -31,12 +31,17 @@ public class Server {
 	private static String teamHeader = "cloud9,4897-8874-0242";
 
 	private static final long MAX_UID = 2427052444L;
+	private static byte[] column;
+	private static byte[] qualifier;
 
 	public static void main(String[] args) {
 
 		serverArgs = args.clone();	//Create a copy of the command line arguments that my handlers can access
 
 		setPort(80);	//Listen on port 80 (which requires sudo)
+
+		column = "c".getBytes();
+		qualifier = "q".getBytes();
 
 		config = HBaseConfiguration.create();	//Create the HBaseConfiguration
 		if(args.length > 0){
@@ -140,18 +145,25 @@ public class Server {
 				String start_time = request.queryParams("start_time");
 				String end_time = request.queryParams("end_time");			
 				Result current;						
-				String value;
+				byte[] values;
 				TreeSet<Long> sorted = new TreeSet();
 				try{
 					if(isTimeStampValid(start_time) && isTimeStampValid(end_time)){
 						ResultScanner query = scan("tweets_q5", place+start_time, place+end_time);
 						current = query.next();
 						while(current != null){ //For each row...
-							//Get the value (a semicolon delimited list of ids)
-							value = Bytes.toString(current.getNoVersionMap().get("c".getBytes()).get("q".getBytes()));
-							String[] splitted = value.split(";"); //Split them on ;
-							for(String s : splitted){
-								sorted.add(Long.parseLong(s, 10));	//Add as longs to the TreeSet
+							//Get the value (a byte array of longs glued together)
+							//DEBUG//values = current.getNoVersionMap().get(column).get(qualifier);
+							byte[] inDB = new byte[24];
+							Bytes.putLong(inDB, 0, 1L);
+							Bytes.putLong(inDB, 8, 2L);
+							Bytes.putLong(inDB, 16, 3L);
+
+							values = inDB;
+							int offset = 0;							
+							while(offset < values.length){
+								sorted.add(Bytes.toLong(values, offset));	//Add as longs to the TreeSet
+								offset += 8;
 							}		
 							current = query.next();				
 						}
@@ -180,7 +192,7 @@ public class Server {
 				String result = teamHeader+"\n";
 				String userMin = request.queryParams("userid_min");
 				String userMax = request.queryParams("userid_max");
-				byte[] columnFamily = "c".getBytes();
+				
 				byte[] count = "c1".getBytes();
 				byte[] sum = "c2".getBytes();
 				int firstSum = 0;
@@ -195,15 +207,15 @@ public class Server {
 
 					if(!first.isEmpty())
 					{	
-						firstSum = Bytes.toInt(first.get(columnFamily).get(sum));
+						firstSum = Bytes.toInt(first.get(column).get(sum));
 					}
 					if(!second.isEmpty())
 					{
 						if (new String(secondScan.getRow()).equals(userMax)) {
-					 		secondSum = Bytes.toInt(second.get(columnFamily).get(sum)) + 
-					 								Bytes.toInt(second.get(columnFamily).get(count));
+					 		secondSum = Bytes.toInt(second.get(column).get(sum)) + 
+					 								Bytes.toInt(second.get(column).get(count));
 						}else{
-							secondSum = Bytes.toInt(second.get(columnFamily).get(sum));
+							secondSum = Bytes.toInt(second.get(column).get(sum));
 						}						
 					}
 					result += String.valueOf(secondSum - firstSum);				
@@ -235,7 +247,7 @@ public class Server {
 										request.params(":start"),
 										request.params(":stop"),
 										false);
-			 		
+
 			 	} catch (IOException e){
 			 			System.err.println(e.getMessage());
 			 		} finally {
