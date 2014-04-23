@@ -126,7 +126,7 @@ public class Server {
 					/*
 					* NOTE: Change qualifier "c" if we change qualifier of tweets_q4 in HBase
 					*/
-					String query = new String(getFromHBase("tweets_q4", request.queryParams("time")).getValue(column, "c".getBytes());					
+					String query = new String(getFromHBase("tweets_q4", request.queryParams("time")).getValue(column, "c".getBytes()));					
 					String[] tweetAndTexts = query.split("&;");
 					StringBuilder sb = new StringBuilder(tweetAndTexts.length*150);
 					sb.append(result);					
