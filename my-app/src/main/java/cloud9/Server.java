@@ -228,7 +228,7 @@ public class Server {
 							secondSum = Bytes.toInt(userMaxValue, sum);
 						}						
 					}
-					result += String.valueOf(secondSum - firstSum);											
+					result += String.valueOf(secondSum - firstSum) + "\n";											
 					
 				}catch (Exception e){
 		 			e.printStackTrace();
