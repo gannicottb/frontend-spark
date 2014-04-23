@@ -131,6 +131,7 @@ public class Server {
 					StringBuilder sb = new StringBuilder(tweetAndTexts.length*150);
 					sb.append(result);					
 					for (String tweetAndText : tweetAndTexts){
+						//Idea: sb.append (tweetAndText.getBytes("UTF-8"));
 						sb.append(tweetAndText);
 						sb.append("\n");
 					}
