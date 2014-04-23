@@ -52,10 +52,10 @@ public class Server {
 			config.set("hbase.regionserver.port", "60020");
 			config.set("hbase.master", args[0]+":9000");
 		}
-			pool = new HTablePool(config, 50);
 
+		pool = new HTablePool(config, 50);
 
-	  	get(new Route("/q1") {
+	  get(new Route("/q1") {
 	     @Override
 	     public Object handle(Request request, Response response) {
 	     	String heartbeat = teamHeader+","+ new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
@@ -71,7 +71,7 @@ public class Server {
 				String result = teamHeader+"\n";			
 				String q2key = request.queryParams("userid")+request.queryParams("tweet_time");
 				try{
-					String tweetIds = getFromHBase("tweets_q2", "c", "q", q2key);
+					String tweetIds = new String(getFromHBase("tweets_q2", q2key).getValue(column, qualifier));					
 					String[] ids = tweetIds.split(";");
 					StringBuilder sb = new StringBuilder(ids.length*18);
 					sb.append(result);					
@@ -126,7 +126,7 @@ public class Server {
 					/*
 					* NOTE: Change qualifier "c" if we change qualifier of tweets_q4 in HBase
 					*/
-					String query = getFromHBase("tweets_q4", "c", "c", request.queryParams("time"));					
+					String query = new String(getFromHBase("tweets_q4", request.queryParams("time")).getValue(column, "c".getBytes()));					
 					String[] tweetAndTexts = query.split("&;");
 					StringBuilder sb = new StringBuilder(tweetAndTexts.length*150);
 					sb.append(result);					
@@ -246,91 +246,10 @@ public class Server {
 					return result;
 		 		}		 	
 			}
-		});
-
-		get(new Route("/scan/:table/:family/:qualifier/:start/:stop") {
-		 @Override
-		 public Object handle(Request request, Response response) { 
-		 		String result = "";
-		 		try{
-			 		result = scanFromHBaseDebug(request.params(":table"),
-										request.params(":family"),
-										request.params(":qualifier"),
-										request.params(":start"),
-										request.params(":stop"),
-										false);
-
-			 	} catch (IOException e){
-			 			System.err.println(e.getMessage());
-			 		} finally {
-			 		response.type("text/plain");
-					response.header("Content-Length", String.valueOf(result.length()));
-					return result;
-				}
-			}
-		});
-
-
-		get(new Route("/get/:table/:family/:qualifier/:row") {
-		 @Override
-		 public Object handle(Request request, Response response) {   
-		 		String result = "";
-		 		try {  
-		 			result = getFromHBase(request.params(":table"), 
-										request.params(":family"),
-										request.params(":qualifier"),
-										request.params(":row"));
-		 		} catch (IOException e){
-		 			System.err.println(e.getMessage());
-		 		} finally {
-		 			return result;
-		 		}		 	
-		 }
-		});
-
-		get(new Route("/raw/:table/:row") {
-		 @Override
-		 public Object handle(Request request, Response response) {   
-		 		String result = "";
-		 		try {  
-		 			result = rawFromHBase(request.params(":table"),										
-										request.params(":row"));
-		 		} catch (IOException e){
-		 			System.err.println(e.getMessage());
-		 		} finally {
-		 			return result;
-		 		}		 	
-		 }
-		});
-
-		get(new Route("/args") {
-		 @Override
-		 public Object handle(Request request, Response response) {   
-		 		String result = "";
-		 		for(String s : serverArgs)
-		 		{
-		 			result += s;
-		 		}	
-		 		return result;
-		 }
-		});
+		});		
 	}
 
-	private static String rawFromHBase(String table, String row) throws IOException{
-		String result = "";			
-		HTableInterface htable = pool.getTable(table);		
-		try {
-			Result r = htable.get(new Get(row.getBytes()));
-			//KeyValue[] result = r.raw();
-			for(KeyValue kv : r.raw()){
-				result += new String(kv.getValue());
-			}
-
-		} finally {
-			htable.close();			
-		}
-		return result;
-	}
+	/* HBase Query Functions */
 
 	private static Result getFromHBase(String table, String row) throws IOException{
 		Result r = null;		
@@ -345,52 +264,7 @@ public class Server {
 		}	
 	}
 
-	private static String getFromHBase(String table, String family, String qualifier, String row) throws IOException{
-		String result = "";			
-		HTableInterface htable = pool.getTable(table);		
-		try {
-		// Use the table as needed, for a single operation and a single thread
-			Result r = htable.get(new Get(row.getBytes()));
-			result = new String(r.getValue(family.getBytes(), qualifier.getBytes()));
-
-		} finally {
-			htable.close();
-			
-		}
-		return result;
-	}
-
-	private static String scanFromHBaseDebug(String table, String family, String qualifier, String start, String stop, boolean limit) throws IOException{		
-		String output = "";
-		HTableInterface htable = pool.getTable(table);	
-		try {					
-			//Scan scan = new Scan(startRow, stopRow);
-			byte[] stopAsBytes = stop.getBytes();
-			byte[] stopPlusZero = Arrays.copyOf(stopAsBytes, stopAsBytes.length+1);
-			// Scan scan = new Scan(start.getBytes(), stop.getBytes());
-			Scan scan = new Scan(start.getBytes(), stopPlusZero);
-			//Set some options
-			if(limit){				
-				scan.setFilter(new PageFilter(1));
-			}					
-
-			ResultScanner scanResult = htable.getScanner(scan);				
-			Result result = scanResult.next();
-			output += new String(result.getValue(family.getBytes(), 
-									qualifier.getBytes()));			
-			while(result != null){
-				result = scanResult.next();	
-				output += "\n"+ new String(result.getValue(family.getBytes(), 
-									qualifier.getBytes()));						
-			}	
-
-		}catch (IOException e){
- 			System.err.println(e.getMessage());
- 		} finally {
-			htable.close();			
-			return output;
-		}		
-	}
+	
 	/* Interfaces to scanFromHBase */
 	private static Result scanOne(String table, byte[] start) throws IOException{
 		return scanFromHBase(table.getBytes(), start, null, true).next();
