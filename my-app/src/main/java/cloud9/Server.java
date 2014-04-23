@@ -153,13 +153,7 @@ public class Server {
 						current = query.next();
 						while(current != null){ //For each row...
 							//Get the value (a byte array of longs glued together)
-							//DEBUG//values = current.getNoVersionMap().get(column).get(qualifier);
-							byte[] inDB = new byte[24];
-							Bytes.putLong(inDB, 0, 1L);
-							Bytes.putLong(inDB, 8, 2L);
-							Bytes.putLong(inDB, 16, 3L);
-
-							values = inDB;
+							values = current.getNoVersionMap().get(column).get(qualifier);				
 							int offset = 0;							
 							while(offset < values.length){
 								sorted.add(Bytes.toLong(values, offset));	//Add as longs to the TreeSet
