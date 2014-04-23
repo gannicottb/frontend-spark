@@ -137,9 +137,7 @@ public class Server {
 					result = sb.toString();					
 					} catch (Exception e){
 			 			e.printStackTrace();
-			 	} finally {	 		
-			 		
-
+			 	} finally {	 
 					response.type("text/plain; charset=UTF-8");
 					//response.header("Content-Length", String.valueOf(result.length()));
 					return result;
@@ -157,9 +155,10 @@ public class Server {
 				Result current;						
 				byte[] values;
 				TreeSet<Long> sorted = new TreeSet();
+				ResultScanner query = null; 
 				try{
 					if(isTimeStampValid(start_time) && isTimeStampValid(end_time)){
-						ResultScanner query = scan("tweets_q5", place+start_time, place+end_time);
+						query = scan("tweets_q5", place+start_time, place+end_time);
 						current = query.next();
 						while(current != null){ //For each row...
 							//Get the value (a byte array of longs glued together)
@@ -183,6 +182,7 @@ public class Server {
 				}catch (Exception e){
 			 			e.printStackTrace();
 			 	} finally {
+			 		query.close();
 					response.type("text/plain");
 					response.header("Content-Length", String.valueOf(result.length()));
 					return result;
@@ -393,11 +393,18 @@ public class Server {
 	}
 	/* Interfaces to scanFromHBase */
 	private static Result scanOne(String table, byte[] start) throws IOException{
-		return scanFromHBase(table.getBytes(), start, null, true).next();
+		ResultScanner rs = scanFromHBase(table.getBytes(), start, null, true);
+		Result r = rs.next();
+		rs.close();
+		return r;
+
 	}
 
 	private static Result scanOne(String table, byte[] start, byte[] stop) throws IOException{
-		return scanFromHBase(table.getBytes(), start, stop, true).next();
+		ResultScanner rs =  scanFromHBase(table.getBytes(), start, stop, true);
+		Result r = rs.next();
+		rs.close();
+		return r;
 	}
 
 	private static ResultScanner scan(String table, String start, String stop) throws IOException{
@@ -417,7 +424,8 @@ public class Server {
 			}
 
 			if(limit){
-				scan.setFilter(new PageFilter(1));
+				scan.setFilter(new PageFilter(1));	
+				scan.setBatch(1);							
 			}
 			scanResult = htable.getScanner(scan);	
 		} catch (Exception e){
