@@ -194,9 +194,17 @@ public class Server {
 			@Override
 			public Object handle(Request request, Response response) {				        	
 				String result = teamHeader+"\n";
+				long testMin = Long.parseLong(request.queryParams("userid_min"), 10);
+				long testMax = Long.parseLong(request.queryParams("userid_max"), 10);
+				if(testMin > MAX_UID){
+					testMin = MAX_UID;
+				}
+				if(testMax > MAX_UID){
+					testMax = MAX_UID;
+				}
 
-				byte[] userMinKey = Bytes.toBytes(Long.parseLong(request.queryParams("userid_min"), 10));				
-				byte[] userMaxKey = Bytes.toBytes(Long.parseLong(request.queryParams("userid_max"), 10));
+				byte[] userMinKey = Bytes.toBytes(testMin);				
+				byte[] userMaxKey = Bytes.toBytes(testMax);
 				byte[] userMinValue;
 				byte[] userMaxValue;
 
