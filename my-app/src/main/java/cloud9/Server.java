@@ -141,7 +141,7 @@ public class Server {
 			 		
 
 					response.type("text/plain; charset=UTF-8");
-					response.header("Content-Length", String.valueOf(result.length()));
+					//response.header("Content-Length", String.valueOf(result.length()));
 					return result;
 				}												
 			}
