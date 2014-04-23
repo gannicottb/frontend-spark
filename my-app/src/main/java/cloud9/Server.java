@@ -7,6 +7,7 @@ package cloud9;
 
 import static spark.Spark.*;
 import spark.*;
+
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.io.*;
@@ -58,7 +59,7 @@ public class Server {
 	     @Override
 	     public Object handle(Request request, Response response) {
 	     	String heartbeat = teamHeader+","+ new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
-	     	response.type("text/plain");
+	     	response.type("text/plain; charset=UTF-8");
 	     	response.header("Content-Length", String.valueOf(heartbeat.length()));
 	      return heartbeat;
 	     }
@@ -136,8 +137,10 @@ public class Server {
 					result = sb.toString();					
 					} catch (Exception e){
 			 			e.printStackTrace();
-			 	} finally {
-					response.type("text/plain");
+			 	} finally {	 		
+			 		
+
+					response.type("text/plain; charset=UTF-8");
 					response.header("Content-Length", String.valueOf(result.length()));
 					return result;
 				}												
