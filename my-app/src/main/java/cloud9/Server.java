@@ -122,7 +122,10 @@ public class Server {
 			public Object handle(Request request, Response response) {				        	
 				String result = teamHeader+"\n";
 				try{				
-					String query = getFromHBase("tweets_q4", "c", "q", request.queryParams("time"));					
+					/*
+					* NOTE: Change qualifier "c" if we change qualifier of tweets_q4 in HBase
+					*/
+					String query = getFromHBase("tweets_q4", "c", "c", request.queryParams("time"));					
 					String[] tweetAndTexts = query.split("&;");
 					StringBuilder sb = new StringBuilder(tweetAndTexts.length*150);
 					sb.append(result);					
