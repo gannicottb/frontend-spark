@@ -83,7 +83,7 @@ public class Server {
 				} catch (Exception e){
 			 			e.printStackTrace();
 			 	} finally {
-					response.type("text/plain");
+					response.type("text/plain; charset=UTF-8");
 					response.header("Content-Length", String.valueOf(result.length()));
 					return result;
 				}
@@ -111,7 +111,7 @@ public class Server {
 					} catch (Exception e){
 			 			e.printStackTrace();
 		 		} finally {
-					response.type("text/plain");
+					response.type("text/plain; charset=UTF-8");
 					response.header("Content-Length", String.valueOf(result.length()));
 					return result;
 				}
@@ -126,7 +126,7 @@ public class Server {
 					/*
 					* NOTE: Change qualifier "c" if we change qualifier of tweets_q4 in HBase
 					*/
-					String query = new String(getFromHBase("tweets_q4", request.queryParams("time")).getValue(column, "c".getBytes()));					
+					String query = new String(getFromHBase("tweets_q4", request.queryParams("time")).getValue(column, "c".getBytes());					
 					String[] tweetAndTexts = query.split("&;");
 					StringBuilder sb = new StringBuilder(tweetAndTexts.length*150);
 					sb.append(result);					
@@ -183,7 +183,7 @@ public class Server {
 				}catch (Exception e){
 			 			e.printStackTrace();
 			 	} finally {
-					response.type("text/plain");
+					response.type("text/plain; charset=UTF-8");
 					response.header("Content-Length", String.valueOf(result.length()));
 					return result;
 				}
@@ -241,7 +241,7 @@ public class Server {
 				}catch (Exception e){
 		 			e.printStackTrace();
 		 		} finally {
-		 			response.type("text/plain");
+		 			response.type("text/plain; charset=UTF-8");
 					response.header("Content-Length", String.valueOf(result.length()));
 					return result;
 		 		}		 	
