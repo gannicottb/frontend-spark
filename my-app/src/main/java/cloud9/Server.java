@@ -32,6 +32,7 @@ public class Server {
 	private static String teamHeader = "cloud9,4897-8874-0242";
 
 	private static final long MAX_UID = 2427052444L;
+	private static final int NUM_POOL_CONNECTIONS = 100;
 	private static byte[] column;
 	private static byte[] qualifier;
 
@@ -51,7 +52,7 @@ public class Server {
 			config.set("hbase.master", args[0]+":9000");
 		}
 
-		pool = new HTablePool(config, 50);
+		pool = new HTablePool(config, NUM_POOL_CONNECTIONS);
 
 	  get(new Route("/q1") {
 	     @Override
@@ -96,7 +97,7 @@ public class Server {
 					Result query = getFromHBase("tweets_q3", request.queryParams("userid"));
 					byte[] userIds = query.getValue(column, qualifier);
 					
-					StringBuilder sb = new StringBuilder(userIds.length*20 + 20);
+					StringBuilder sb = new StringBuilder(userIds.length*20 + 25);
 					sb.append(result);
 
 					int offset = 0;							
